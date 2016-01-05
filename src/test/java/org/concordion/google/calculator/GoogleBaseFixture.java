@@ -1,9 +1,7 @@
 package org.concordion.google.calculator;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.concordion.api.AfterSuite;
+import org.concordion.api.AfterSpecification;
+import org.concordion.api.BeforeSpecification;
 import org.concordion.api.extension.Extension;
 import org.concordion.api.extension.Extensions;
 import org.concordion.ext.ParallelRunExtension;
@@ -23,37 +21,32 @@ import org.junit.runner.RunWith;
 @Extensions(ParallelRunExtension.class)
 public abstract class GoogleBaseFixture {
 
-    private static List<Browser> browsers = new ArrayList<Browser>();
-	protected static ThreadLocal<Browser> browser = new ThreadLocal<Browser>();
+	protected static ThreadLocal<Browser> browser = new ThreadLocal<Browser>() {
+	    protected Browser initialValue() {
+	        return new Browser();
+	    }
+	};
 	
     @Extension
     public ScreenshotExtension extension = new ScreenshotExtension();
     
     protected GoogleResultsPage resultsPage;
 
-    private void initialiseBrowser() { 
-        if (browser.get() == null) {
-            Browser newBrowser = new Browser();
-            browser.set(newBrowser);
-            browsers.add(newBrowser);
-        }
+    @BeforeSpecification
+    void initialiseBrowser() { 
         extension.setScreenshotTaker(new SeleniumScreenshotTaker(browser.get().getDriver()));
     }
 
-	@AfterSuite
-	public void close() {
-	    for (Browser browser : browsers) {
-	        browser.close();
-	    }
+	@AfterSpecification
+	void close() {
+	    browser.get().close();
+	    browser.remove();
 	}
 
     /**
      * Searches for the specified topic, and waits for the results page to load.
      */
     public void searchFor(String topic) {
-        if (browser.get() == null) {
-            initialiseBrowser();
-        }
         resultsPage = new GoogleSearchPage(browser.get().getDriver()).searchFor(topic);
     }
 }
